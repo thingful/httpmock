@@ -13,24 +13,16 @@ type ErrNoResponderFound struct {
 
 // Error ensures our ErrNoResponderFound type implements the error interface
 func (e *ErrNoResponderFound) Error() string {
-	// TODO: is there a better way of giving a rich error message than this?
-
 	if len(e.errs) == 0 {
-		return "No registered stubs"
+		return "No responders found"
 	}
 
-	msg := `
-
-Errors
-----------------------------
-%s
-`
 	errMsgs := []string{}
 	for _, e := range e.errs {
 		errMsgs = append(errMsgs, e.Error())
 	}
 
-	return fmt.Sprintf(msg, strings.Join(errMsgs, "\n"))
+	return fmt.Sprintf("Responder errors: %s", strings.Join(errMsgs, ", "))
 }
 
 // NewErrNoResponderFound returns a new ErrNoResponderFound error
@@ -50,18 +42,16 @@ type ErrStubsNotCalled struct {
 func (e *ErrStubsNotCalled) Error() string {
 	// TODO: is there a better way of giving a rich error message than this?
 
-	msg := `
+	if len(e.uncalledStubs) == 0 {
+		return "No registered stubs"
+	}
 
-Uncalled stubs
-----------------------------
-%s
-`
 	uncalled := []string{}
 	for _, s := range e.uncalledStubs {
 		uncalled = append(uncalled, s.String())
 	}
 
-	return fmt.Sprintf(msg, strings.Join(uncalled, "\n"))
+	return fmt.Sprintf("Uncalled stubs: %s", strings.Join(uncalled, ", "))
 }
 
 // NewErrStubsNotCalled returns a new StubsNotCalled error
