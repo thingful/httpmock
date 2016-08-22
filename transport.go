@@ -103,6 +103,10 @@ func (m *MockTransport) stubForRequest(req *http.Request) (*StubRequest, error) 
 		}
 	}
 
+	if err != nil {
+		return nil, err
+	}
+
 	return nil, ErrNoResponderFound
 }
 
