@@ -1,54 +1,21 @@
 package httpmock
 
 import (
-	"errors"
-	"fmt"
 	"net/http"
-	"strings"
 )
 
 // Responder types are callbacks that receive and http request and return a
 // mocked response.
 type Responder func(*http.Request) (*http.Response, error)
 
-// ErrNoResponderFound is returned when no responders are found for a given
-// HTTP method and URL.
-var ErrNoResponderFound = errors.New("no responder found")
-
-// ErrStubsNotCalled is a type implementing the error interface we return when
-// not all registered stubs were called
-type ErrStubsNotCalled struct {
-	uncalledStubs []*StubRequest
-}
-
-// Error ensures our ErrStubsNotCalled type implements the error interface
-func (e *ErrStubsNotCalled) Error() string {
-	// TODO: is there a better way of giving a rich error message than this?
-
-	msg := `
-Uncalled stubs
-----------------------------
-%s
-`
-	uncalled := []string{}
-	for _, s := range e.uncalledStubs {
-		uncalled = append(uncalled, s.String())
-	}
-
-	return fmt.Sprintf(msg, strings.Join(uncalled, "\n"))
-}
-
-// NewErrStubsNotCalled returns a new StubsNotCalled error
-func NewErrStubsNotCalled(uncalledStubs []*StubRequest) *ErrStubsNotCalled {
-	return &ErrStubsNotCalled{
-		uncalledStubs: uncalledStubs,
-	}
-}
+// ErrNoRespondersRegistered is an instance of ErrNoResponderFound created with
+// no registered responders
+var ErrNoRespondersRegistered = NewErrNoResponderFound(nil)
 
 // ConnectionFailure is a responder that returns a connection failure.  This is the default
 // responder, and is called when no other matching responder is found.
-func ConnectionFailure(*http.Request) (*http.Response, error) {
-	return nil, ErrNoResponderFound
+func ConnectionFailure(req *http.Request, err error) (*http.Response, error) {
+	return nil, err
 }
 
 // NewMockTransport creates a new *MockTransport with no stubbed requests.
@@ -76,7 +43,7 @@ func (m *MockTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	// we didn't find a responder so fire the 'no responder' responder
 	if err != nil {
 		if m.noResponder == nil {
-			return ConnectionFailure(req)
+			return ConnectionFailure(req, err)
 		}
 		return m.noResponder(req)
 	}
@@ -107,7 +74,7 @@ func (m *MockTransport) stubForRequest(req *http.Request) (*StubRequest, error) 
 		return nil, err
 	}
 
-	return nil, ErrNoResponderFound
+	return nil, NewErrNoResponderFound(m.stubs)
 }
 
 // RegisterStubRequest adds a new responder, associated with a given stubbed
