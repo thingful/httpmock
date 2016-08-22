@@ -1,6 +1,7 @@
 package httpmock
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -67,7 +68,7 @@ func (r *StubRequest) WithBody(body io.Reader) *StubRequest {
 // matched by this fetcher. Should an incoming request URL cause an error when
 // normalized, we return false.
 func (r *StubRequest) Matches(req *http.Request) error {
-	if strings.ToUpper(req.Method) != strings.ToUpper(r.Method) {
+	if !strings.EqualFold(req.Method, r.Method) {
 		return ErrIncorrectMethod
 	}
 
@@ -115,7 +116,7 @@ func (r *StubRequest) Matches(req *http.Request) error {
 			return err
 		}
 
-		if string(stubBody) != string(requestBody) {
+		if bytes.Compare(stubBody, requestBody) != 0 {
 			return ErrIncorrectRequestBody
 		}
 	}
