@@ -47,12 +47,10 @@ func TestMockTransport(t *testing.T) {
 		t.FailNow()
 	}
 
-	// the http client wraps our NoResponderFound error, so we just try and match
-	// on text
-	if _, err := http.Get(testURL); !strings.Contains(err.Error(),
-		ErrNoResponderFound.Error()) {
-
-		t.Fatal(err)
+	// should give error when unknown url requested
+	_, err = http.Get(testURL)
+	if err == nil {
+		t.Fatalf("Expected error when no matching responders available")
 	}
 }
 
@@ -81,10 +79,9 @@ func TestMockTransportCaseInsensitive(t *testing.T) {
 	}
 
 	// the http client wraps our NoResponderFound error, so we just try and match on text
-	if _, err := http.Get(testURL); !strings.Contains(err.Error(),
-		ErrNoResponderFound.Error()) {
-
-		t.Fatal(err)
+	_, err = http.Get(testURL)
+	if err == nil {
+		t.Errorf("Expected error when no responder is available")
 	}
 }
 
