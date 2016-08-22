@@ -8,34 +8,27 @@ import (
 // ErrNoResponderFound is a custom error type used when no responders were
 // found.
 type ErrNoResponderFound struct {
-	stubs []*StubRequest
+	errs []error
 }
 
 // Error ensures our ErrNoResponderFound type implements the error interface
 func (e *ErrNoResponderFound) Error() string {
-	// TODO: is there a better way of giving a rich error message than this?
-
-	if len(e.stubs) == 0 {
-		return "No registered stubs"
+	if len(e.errs) == 0 {
+		return "No responders found"
 	}
 
-	msg := `
-Registered stubs
-----------------------------
-%s
-`
-	stubs := []string{}
-	for _, s := range e.stubs {
-		stubs = append(stubs, s.String())
+	errMsgs := []string{}
+	for _, e := range e.errs {
+		errMsgs = append(errMsgs, e.Error())
 	}
 
-	return fmt.Sprintf(msg, strings.Join(stubs, "\n"))
+	return fmt.Sprintf("Responder errors: %s", strings.Join(errMsgs, ", "))
 }
 
 // NewErrNoResponderFound returns a new ErrNoResponderFound error
-func NewErrNoResponderFound(stubs []*StubRequest) *ErrNoResponderFound {
+func NewErrNoResponderFound(errs []error) *ErrNoResponderFound {
 	return &ErrNoResponderFound{
-		stubs: stubs,
+		errs: errs,
 	}
 }
 
@@ -49,17 +42,16 @@ type ErrStubsNotCalled struct {
 func (e *ErrStubsNotCalled) Error() string {
 	// TODO: is there a better way of giving a rich error message than this?
 
-	msg := `
-Uncalled stubs
-----------------------------
-%s
-`
+	if len(e.uncalledStubs) == 0 {
+		return "No registered stubs"
+	}
+
 	uncalled := []string{}
 	for _, s := range e.uncalledStubs {
 		uncalled = append(uncalled, s.String())
 	}
 
-	return fmt.Sprintf(msg, strings.Join(uncalled, "\n"))
+	return fmt.Sprintf("Uncalled stubs: %s", strings.Join(uncalled, ", "))
 }
 
 // NewErrStubsNotCalled returns a new StubsNotCalled error

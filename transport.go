@@ -8,9 +8,9 @@ import (
 // mocked response.
 type Responder func(*http.Request) (*http.Response, error)
 
-// ErrNoRespondersRegistered is an instance of ErrNoResponderFound created with
-// no registered responders
-var ErrNoRespondersRegistered = NewErrNoResponderFound(nil)
+// ErrNoResponders is an instance of ErrNoResponderFound created when no errors
+// returned, i.e. no registered responders
+var ErrNoResponders = NewErrNoResponderFound(nil)
 
 // ConnectionFailure is a responder that returns a connection failure.  This is the default
 // responder, and is called when no other matching responder is found.
@@ -40,6 +40,7 @@ type MockTransport struct {
 func (m *MockTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	// try and get a responder that matches the given request
 	stub, err := m.stubForRequest(req)
+
 	// we didn't find a responder so fire the 'no responder' responder
 	if err != nil {
 		if m.noResponder == nil {
@@ -61,6 +62,7 @@ func (m *MockTransport) CancelRequest(req *http.Request) {}
 // object or nil if no stub claims to be a match
 func (m *MockTransport) stubForRequest(req *http.Request) (*StubRequest, error) {
 	var err error
+	var errs = []error{}
 
 	// find the first stub that matches the request
 	for _, stub := range m.stubs {
@@ -68,13 +70,10 @@ func (m *MockTransport) stubForRequest(req *http.Request) (*StubRequest, error) 
 		if err == nil {
 			return stub, nil
 		}
+		errs = append(errs, err)
 	}
 
-	if err != nil {
-		return nil, err
-	}
-
-	return nil, NewErrNoResponderFound(m.stubs)
+	return nil, NewErrNoResponderFound(errs)
 }
 
 // RegisterStubRequest adds a new responder, associated with a given stubbed
