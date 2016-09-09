@@ -1,98 +1,27 @@
-httpmock [![Build Status](https://travis-ci.org/jarcoal/httpmock.png?branch=master)](https://travis-ci.org/jarcoal/httpmock)
-=====
+# httpmock [![Build Status](https://travis-ci.org/thingful/httpmock.png?branch=master)](https://travis-ci.org/thingful/httpmock)
 
-### Simple Example:
-```go
-func TestFetchArticles(t *testing.T) {
-	httpmock.Activate()
-	defer httpmock.DeactivateAndReset()
+This library is a fork of https://github.com/jarcoal/httpmock, which now has a
+somewhat different API from the original library. All of the clever stuff was
+worked out in the original version, this fork just adds some extra fussiness in
+how it registers and responds to requests.
 
-	httpmock.RegisterStubRequest(
-    httpmock.NewStubRequest(
-      "GET",
-      "https://api.mybiz.com/articles.json",
-		  httpmock.NewStringResponder(200, `[{"id": 1, "name": "My Great Article"}]`),
-    ),
-  )
+## What is the purpose of this fork?
 
-	// do stuff that makes a request to articles.json
+The reason for creating this fork was that while the original httpmock library
+provided a very neat mechanism for inserting mocked responses into the default
+Go net/http client, it was intentionally designed to be very tolerant about the
+requests it matched which lead to us seeing some bugs in production.
 
-  // verify all registered stubs were called
-  if err := httpmock.AllStubsCalled(); err != nil {
-    t.Errorf("Not all stubs were called: %s", err)
-  }
-}
-```
+To give a specific example let's say our code requires requesting data from
+some external resource (http://api.example.com/resource/1), and for correct
+operation it must include in that request a specific authorization header
+containing a value passed in from somewhere else within the program. For this
+scenario the previous library would let us create a responder for
+http://api.example.com/resource/1, but wouldn't allow us to force a test
+failure if that resource was requested without the authorization header being
+present.
 
-### Headers Example:
-```go
-func TestFetchArticles(t *testing.T) {
-	httpmock.Activate()
-	defer httpmock.DeactivateAndReset()
+## Usage examples
 
-	httpmock.RegisterStubRequest(
-    httpmock.NewStubRequest(
-      "GET",
-      "https://api.mybiz.com/articles.json",
-		  httpmock.NewStringResponder(200, `[{"id": 1, "name": "My Great Article"}]`),
-    ).WithHeaders(&http.Header{
-      "Accept": []string{"application/json"},
-    })
-  )
-
-	// do stuff that makes a request to articles.json
-
-  // verify all registered stubs were called
-  if err := httpmock.AllStubsCalled(); err != nil {
-    t.Errorf("Not all stubs were called: %s", err)
-  }
-}
-```
-
-### Advanced Example:
-```go
-func TestFetchArticles(t *testing.T) {
-	httpmock.Activate()
-	defer httpmock.DeactivateAndReset()
-
-	// our database of articles
-	articles := make([]map[string]interface{}, 0)
-
-	// mock to list out the articles
-	httpmock.RegisterStubRequest(
-    httpmock.NewStubRequest(
-      "GET",
-      "https://api.mybiz.com/articles.json",
-		  func(req *http.Request) (*http.Response, error) {
-			  resp, err := httpmock.NewJsonResponse(200, articles)
-			  if err != nil {
-				  return httpmock.NewStringResponse(500, ""), nil
-			  }
-			  return resp, nil
-		  }
-    ))
-	)
-
-	// mock to add a new article
-	httpmock.RegisterStubRequest(&httpmock.StubRequest{
-    Method: "POST",
-    URL: "https://api.mybiz.com/articles.json",
-		Responder: func(req *http.Request) (*http.Response, error) {
-			article := make(map[string]interface{})
-			if err := json.NewDecoder(req.Body).Decode(&article); err != nil {
-				return httpmock.NewStringResponse(400, ""), nil
-			}
-
-			articles = append(articles, article)
-
-			resp, err := httpmock.NewJsonResponse(200, article)
-			if err != nil {
-				return httpmock.NewStringResponse(500, ""), nil
-			}
-			return resp, nil
-		},
-	})
-
-	// do stuff that adds and checks articles
-}
-```
+For usage examples, please see the documentation at
+https://godoc.org/github.com/thingful/httpmock.
