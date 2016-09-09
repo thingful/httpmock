@@ -16,7 +16,7 @@ To give a specific example let's say our code requires requesting data from
 some external resource (http://api.example.com/resource/1), and for correct
 operation it must include in that request a specific authorization header
 containing a value passed in from somewhere else within the program. For this
-scenario the previous library would let us create a responder for
+scenario the previous library would let us create a responder for the resource
 http://api.example.com/resource/1, but wouldn't allow us to force a test
 failure if that resource was requested without the authorization header being
 present.
