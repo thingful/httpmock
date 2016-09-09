@@ -10,8 +10,9 @@ Simple Example:
 			httpmock.NewStubRequest(
 				"GET",
 				"https://api.mybiz.com/articles.json",
-				httpmock.NewStringResponder(200, `[{"id": 1, "name": "My Great Article"}]`,
-			)))
+				httpmock.NewStringResponder(200, `[{"id": 1, "name": "My Great Article"}]`),
+			),
+		)
 
 		// do stuff that makes a request to articles.json
 
@@ -30,7 +31,7 @@ Advanced Example:
 		articles := make([]map[string]interface{}, 0)
 
 		// mock to list out the articles
-		httpmock.RegisterResponder(
+		httpmock.RegisterStubRequest(
 			httpmock.NewStubRequest(
 				"GET",
 				"https://api.mybiz.com/articles.json",
@@ -45,10 +46,11 @@ Advanced Example:
 				&http.Header{
 					"Api-Key": []string{"1234abcd"},
 				},
-			))
+			),
+		)
 
 		// mock to add a new article
-		httpmock.RegisterResponder(
+		httpmock.RegisterStubRequest(
 			httpmock.NewStubRequest(
 				"POST",
 				"https://api.mybiz.com/articles.json",
@@ -72,7 +74,8 @@ Advanced Example:
 				},
 			).WithBody(
 				bytes.NewBufferString(`{"title":"article"}`),
-			))
+			),
+		)
 
 		// do stuff that adds and checks articles
 
