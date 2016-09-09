@@ -1,4 +1,4 @@
-# httpmock [![Build Status](https://travis-ci.org/thingful/httpmock.png?branch=master)](https://travis-ci.org/thingful/httpmock)
+# httpmock [![Build Status](https://travis-ci.org/thingful/httpmock.png?branch=master)](https://travis-ci.org/thingful/httpmock) [![GoDoc](https://godoc.org/github.com/thingful/httpmock?status.svg)](https://godoc.org/github.com/thingful/httpmock)
 
 This library is a fork of https://github.com/jarcoal/httpmock, which now has a
 somewhat different API from the original library. All of the clever stuff was
