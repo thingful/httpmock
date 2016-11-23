@@ -8,12 +8,13 @@ go:
 
 env:
     - GO15VENDOREXPERIMENT=1
+    - GLIDE_VERSION=v0.12.3
 
 notifications:
     email: false
 
 before_install:
-    - curl -o /tmp/glide.tar.gz --location https://github.com/Masterminds/glide/releases/download/v0.11.1/glide-v0.11.1-linux-amd64.tar.gz
+    - curl -o /tmp/glide.tar.gz --location https://github.com/Masterminds/glide/releases/download/${GLIDE_VERSION}/glide-${GLIDE_VERSION}-linux-amd64.tar.gz
     - tar -xzvf /tmp/glide.tar.gz
     - export PATH=$PATH:$PWD/linux-amd64/
 
