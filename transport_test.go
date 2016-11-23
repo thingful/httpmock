@@ -131,16 +131,28 @@ func TestMockTransportAdvanced(t *testing.T) {
 		t.Fatalf("Unexpected error constructing request: %#v", err)
 	}
 
+	req.Header.Add("X-ApiKey", "another-api-key")
+	resp1, err := client.Do(req)
+	if err == nil {
+		t.Fatalf("POST request should have failed due to incorrect header")
+		defer resp1.Body.Close()
+	}
+
+	req, err = http.NewRequest("POST", url, bytes.NewBufferString(requestBody))
+	if err != nil {
+		t.Fatalf("Unexpected error constructing request: %#v", err)
+	}
+
 	req.Header.Add("X-ApiKey", "api-key")
 
-	resp, err := client.Do(req)
+	resp2, err := client.Do(req)
 	if err != nil {
 		t.Fatalf("Unexpected error when making request: %#v", err)
 	}
-	defer resp.Body.Close()
+	defer resp2.Body.Close()
 
 	checkBody := &schema{}
-	if err := json.NewDecoder(resp.Body).Decode(checkBody); err != nil {
+	if err := json.NewDecoder(resp2.Body).Decode(checkBody); err != nil {
 		t.Fatal(err)
 	}
 
