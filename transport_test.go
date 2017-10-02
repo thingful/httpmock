@@ -194,19 +194,19 @@ func TestAllStubsCalled(t *testing.T) {
 func TestMockTransportReset(t *testing.T) {
 	DeactivateAndReset()
 
-	if len(DefaultTransport.stubs) > 0 {
+	if len(mockTransport.stubs) > 0 {
 		t.Fatal("expected no responders at this point")
 	}
 
 	RegisterStubRequest(NewStubRequest("GET", testURL, nil))
 
-	if len(DefaultTransport.stubs) != 1 {
+	if len(mockTransport.stubs) != 1 {
 		t.Fatal("expected one stubbed request")
 	}
 
 	Reset()
 
-	if len(DefaultTransport.stubs) > 0 {
+	if len(mockTransport.stubs) > 0 {
 		t.Fatal("expected no stubbed requests as they were just reset")
 	}
 }
@@ -217,7 +217,7 @@ func TestMockTransportNoResponder(t *testing.T) {
 
 	Reset()
 
-	if DefaultTransport.noResponder != nil {
+	if mockTransport.noResponder != nil {
 		t.Fatal("expected noResponder to be nil")
 	}
 

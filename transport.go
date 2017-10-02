@@ -114,21 +114,21 @@ func (m *MockTransport) AllStubsCalled() error {
 	return NewErrStubsNotCalled(uncalledStubs)
 }
 
-// DefaultTransport is the default mock transport used by Activate, Deactivate,
+// mockTransport is the default mock transport used by Activate, Deactivate,
 // Reset, DeactivateAndReset, RegisterStubRequest, RegisterNoResponder and
 // AllStubsCalled.
-var DefaultTransport = NewMockTransport()
+var mockTransport = NewMockTransport()
 
-// InitialTransport is a cache of the original transport used so we can put it back
+// initialTransport is a cache of the original transport used so we can put it back
 // when Deactivate is called.
-var InitialTransport = http.DefaultTransport
+var initialTransport = http.DefaultTransport
 
 // Used to handle custom http clients (i.e clients other than http.DefaultClient)
 var oldTransport http.RoundTripper
 var oldClient *http.Client
 
 // Activate starts the mock environment.  This should be called before your tests run.  Under the
-// hood this replaces the Transport on the http.DefaultClient with DefaultTransport.
+// hood this replaces the Transport on the http.DefaultClient with mockTransport.
 //
 // To enable mocks for a test, simply activate at the beginning of a test:
 // 		func TestFetchArticles(t *testing.T) {
@@ -147,11 +147,11 @@ func Activate() {
 
 	// make sure that if Activate is called multiple times it doesn't overwrite the InitialTransport
 	// with a mock transport.
-	if http.DefaultTransport != DefaultTransport {
-		InitialTransport = http.DefaultTransport
+	if http.DefaultTransport != mockTransport {
+		initialTransport = http.DefaultTransport
 	}
 
-	http.DefaultTransport = DefaultTransport
+	http.DefaultTransport = mockTransport
 }
 
 // ActivateNonDefault starts the mock environment with a non-default http.Client.
@@ -169,7 +169,7 @@ func ActivateNonDefault(client *http.Client) {
 	// save the custom client & it's RoundTripper
 	oldTransport = client.Transport
 	oldClient = client
-	client.Transport = DefaultTransport
+	client.Transport = mockTransport
 }
 
 // Deactivate shuts down the mock environment.  Any HTTP calls made after this
@@ -186,7 +186,7 @@ func Deactivate() {
 	if Disabled() {
 		return
 	}
-	http.DefaultTransport = InitialTransport
+	http.DefaultTransport = initialTransport
 
 	// reset the custom client to use it's original RoundTripper
 	if oldClient != nil {
@@ -197,7 +197,7 @@ func Deactivate() {
 // Reset will remove any registered mocks and return the mock environment to
 // it's initial state.
 func Reset() {
-	DefaultTransport.Reset()
+	mockTransport.Reset()
 }
 
 // DeactivateAndReset is just a convenience method for calling Deactivate() and
@@ -211,7 +211,7 @@ func DeactivateAndReset() {
 // method and URL, then route them to the Responder which will generate a
 // response to be returned to the client.
 func RegisterStubRequest(request *StubRequest) {
-	DefaultTransport.RegisterStubRequest(request)
+	mockTransport.RegisterStubRequest(request)
 }
 
 // RegisterNoResponder adds a mock that will be called whenever a request for
@@ -228,7 +228,7 @@ func RegisterStubRequest(request *StubRequest) {
 // 			// any requests that don't have a registered URL will be fetched normally
 // 		}
 func RegisterNoResponder(responder Responder) {
-	DefaultTransport.RegisterNoResponder(responder)
+	mockTransport.RegisterNoResponder(responder)
 }
 
 // AllStubsCalled is a function intended to be used within your tests to
@@ -238,5 +238,5 @@ func RegisterNoResponder(responder Responder) {
 // an error unless all currently registered stubs were called.
 //
 func AllStubsCalled() error {
-	return DefaultTransport.AllStubsCalled()
+	return mockTransport.AllStubsCalled()
 }
