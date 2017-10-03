@@ -1,20 +1,22 @@
-package httpmock
+package httpmock_test
 
 import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/thingful/httpmock"
 )
 
 func ExampleRegisterStubRequest() {
-	Activate()
-	defer DeactivateAndReset()
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
 
-	RegisterStubRequest(
-		NewStubRequest(
+	httpmock.RegisterStubRequest(
+		httpmock.NewStubRequest(
 			"GET",
 			"http://example.com/",
-			NewStringResponder(200, "ok"),
+			httpmock.NewStringResponder(200, "ok"),
 		),
 	)
 
@@ -33,7 +35,7 @@ func ExampleRegisterStubRequest() {
 
 	fmt.Println(string(body))
 
-	if err = AllStubsCalled(); err != nil {
+	if err = httpmock.AllStubsCalled(); err != nil {
 		// handle error properly in real code
 		panic(err)
 	}
@@ -42,14 +44,14 @@ func ExampleRegisterStubRequest() {
 }
 
 func ExampleRegisterStubRequest_WithHeader() {
-	Activate()
-	defer DeactivateAndReset()
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
 
-	RegisterStubRequest(
-		NewStubRequest(
+	httpmock.RegisterStubRequest(
+		httpmock.NewStubRequest(
 			"GET",
 			"http://example.com/",
-			NewStringResponder(200, "ok"),
+			httpmock.NewStringResponder(200, "ok"),
 		).WithHeader(
 			&http.Header{
 				"Authorization": []string{"Bearer api-key"},
@@ -87,7 +89,7 @@ func ExampleRegisterStubRequest_WithHeader() {
 
 	fmt.Println(string(body))
 
-	if err = AllStubsCalled(); err != nil {
+	if err = httpmock.AllStubsCalled(); err != nil {
 		// handle error properly in real code
 		panic(err)
 	}

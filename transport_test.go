@@ -85,6 +85,46 @@ func TestMockTransportCaseInsensitive(t *testing.T) {
 	}
 }
 
+type mockMockTransport struct{}
+
+func (m *mockMockTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	return NewStringResponse(200, "ok"), nil
+}
+
+func TestMockTransportAllowedHosts(t *testing.T) {
+	// cache the real initialTransport
+	cachedTransport := initialTransport
+
+	Activate(
+		WithAllowedHosts("example.com"),
+	)
+
+	defer DeactivateAndReset()
+
+	// set the initialTransport to be our mockMock version
+	initialTransport = &mockMockTransport{}
+
+	resp, err := http.Get("http://example.com:8080")
+	if err != nil {
+		t.Fatalf("Unexpected error: %+v", err)
+	}
+
+	defer resp.Body.Close()
+
+	// make sure we read our body back from the mockMock round tripper
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Errorf("Unexpected error: %+v", err)
+	}
+
+	if string(body) != "ok" {
+		t.Errorf("Unexpected body: %s", body)
+	}
+
+	// restore our original
+	initialTransport = cachedTransport
+}
+
 func TestMockTransportAdvanced(t *testing.T) {
 	type schema struct {
 		Message string `json:"msg"`
@@ -194,19 +234,19 @@ func TestAllStubsCalled(t *testing.T) {
 func TestMockTransportReset(t *testing.T) {
 	DeactivateAndReset()
 
-	if len(DefaultTransport.stubs) > 0 {
+	if len(mockTransport.stubs) > 0 {
 		t.Fatal("expected no responders at this point")
 	}
 
 	RegisterStubRequest(NewStubRequest("GET", testURL, nil))
 
-	if len(DefaultTransport.stubs) != 1 {
+	if len(mockTransport.stubs) != 1 {
 		t.Fatal("expected one stubbed request")
 	}
 
 	Reset()
 
-	if len(DefaultTransport.stubs) > 0 {
+	if len(mockTransport.stubs) > 0 {
 		t.Fatal("expected no stubbed requests as they were just reset")
 	}
 }
@@ -217,12 +257,17 @@ func TestMockTransportNoResponder(t *testing.T) {
 
 	Reset()
 
-	if DefaultTransport.noResponder != nil {
+	if mockTransport.noResponder != nil {
 		t.Fatal("expected noResponder to be nil")
 	}
 
-	if _, err := http.Get(testURL); err == nil {
+	_, err := http.Get(testURL)
+	if err == nil {
 		t.Fatal("expected to receive a connection error due to lack of responders")
+	}
+
+	if err.Error() != "Get http://www.example.com/: No responders found" {
+		t.Errorf("Unexpected error: %s", err.Error())
 	}
 
 	RegisterNoResponder(NewStringResponder(200, "hello world"))
@@ -242,7 +287,7 @@ func TestMockTransportNoResponder(t *testing.T) {
 	}
 }
 
-func TestMockTransportWithQuerystring(t *testing.T) {
+func TestMockTransportWithQueryString(t *testing.T) {
 	Activate()
 	defer DeactivateAndReset()
 
@@ -255,8 +300,13 @@ func TestMockTransportWithQuerystring(t *testing.T) {
 		))
 
 	// should error if no parameters passed
-	if _, err := http.Get(testURL); err == nil {
+	_, err := http.Get(testURL)
+	if err == nil {
 		t.Fatal("expected to receive a connection error due to lack of responders")
+	}
+
+	if err.Error() != "Get http://www.example.com/: Responder errors: Incorrect URL used" {
+		t.Errorf("Unxpected error: %s", err.Error())
 	}
 
 	// should error if if only one parameter passed
@@ -273,7 +323,7 @@ func TestMockTransportWithQuerystring(t *testing.T) {
 	}
 
 	// should not error if both parameters are sent
-	_, err := http.Get(testURL + "?first=val&second=val")
+	_, err = http.Get(testURL + "?first=val&second=val")
 	if err != nil {
 		t.Fatal("expected request to succeed")
 	}
@@ -350,4 +400,54 @@ func TestMockTransportNonDefault(t *testing.T) {
 	if string(data) != body {
 		t.FailNow()
 	}
+}
+
+func TestMockTransportNonDefaultAllowedHosts(t *testing.T) {
+	// create a custom http client w/ custom Roundtripper
+	client := &http.Client{
+		Transport: &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
+			Dial: (&net.Dialer{
+				Timeout:   60 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}).Dial,
+			TLSHandshakeTimeout: 60 * time.Second,
+		},
+	}
+
+	// cache the real initialTransport
+	cachedTransport := initialTransport
+
+	ActivateNonDefault(
+		client,
+		WithAllowedHosts("example.com"),
+	)
+	defer DeactivateAndReset()
+
+	// set the initialTransport to be our mockMock version
+	initialTransport = &mockMockTransport{}
+
+	req, err := http.NewRequest("GET", "http://example.com", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer resp.Body.Close()
+
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if string(data) != "ok" {
+		t.FailNow()
+	}
+
+	// restore our original
+	initialTransport = cachedTransport
 }
