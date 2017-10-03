@@ -2,6 +2,7 @@ package httpmock
 
 import (
 	"net/http"
+	"sync"
 )
 
 // Responder types are callbacks that receive and http request and return a
@@ -32,6 +33,7 @@ func NewMockTransport() *MockTransport {
 type MockTransport struct {
 	stubs       []*StubRequest
 	noResponder Responder
+	mu          sync.Mutex
 }
 
 // RoundTrip receives HTTP requests and routes them to the appropriate responder.  It is required to
@@ -80,6 +82,9 @@ func (m *MockTransport) stubForRequest(req *http.Request) (*StubRequest, error) 
 // request. When a request comes in that matches, the responder will be called
 // and the response returned to the client.
 func (m *MockTransport) RegisterStubRequest(stub *StubRequest) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	m.stubs = append(m.stubs, stub)
 }
 
