@@ -2,6 +2,7 @@ package httpmock
 
 import (
 	"net/http"
+	"strings"
 	"sync"
 )
 
@@ -290,9 +291,22 @@ func AllStubsCalled() error {
 // matches, then we permit the outgoing request.
 func isAllowed(req *http.Request) bool {
 	for _, host := range allowedHosts {
-		if req.URL.Hostname() == host {
+		if stripPort(req.URL.Host) == host {
 			return true
 		}
 	}
 	return false
+}
+
+// stripPort is a function borrowed from the standard lib, added in 1.9 which
+// strips any port part from a given hostname
+func stripPort(hostport string) string {
+	colon := strings.IndexByte(hostport, ':')
+	if colon == -1 {
+		return hostport
+	}
+	if i := strings.IndexByte(hostport, ']'); i != -1 {
+		return strings.TrimPrefix(hostport[:i], "[")
+	}
+	return hostport[:colon]
 }

@@ -104,9 +104,9 @@ func TestMockTransportAllowedHosts(t *testing.T) {
 	// set the initialTransport to be our mockMock version
 	initialTransport = &mockMockTransport{}
 
-	resp, err := http.Get("http://example.com")
+	resp, err := http.Get("http://example.com:8080")
 	if err != nil {
-		t.Errorf("Unexpected error: %+v", err)
+		t.Fatalf("Unexpected error: %+v", err)
 	}
 
 	defer resp.Body.Close()
