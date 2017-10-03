@@ -24,7 +24,9 @@ Simple Example:
 
 Advanced Example:
 	func TestFetchArticles(t *testing.T) {
-		httpmock.Activate()
+		httpmock.Activate(
+			WithAllowedHosts("localhost"),
+		)
 		defer httpmock.DeactivateAndReset()
 
 		// our database of articles
