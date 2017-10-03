@@ -45,6 +45,11 @@ func (m *MockTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 	// we didn't find a responder so fire the 'no responder' responder
 	if err != nil {
+		// check if this is an allowed request - if so make the request
+		if isAllowed(req) {
+			return initialTransport.RoundTrip(req)
+		}
+
 		if m.noResponder == nil {
 			return ConnectionFailure(req, err)
 		}
@@ -132,8 +137,26 @@ var initialTransport = http.DefaultTransport
 var oldTransport http.RoundTripper
 var oldClient *http.Client
 
-// Activate starts the mock environment.  This should be called before your tests run.  Under the
-// hood this replaces the Transport on the http.DefaultClient with mockTransport.
+// allowedHosts is a string slice used to hold a list of allowed hosts. An
+// allowed host is one we permit outgoing requests to even while the mocks are
+// activated.
+var allowedHosts []string
+
+// WithAllowedHosts is used to configure the behaviour of httpmock, by allowing
+// clients to specify a list of allowed hosts when calling Activate. A list of
+// hostnames excluding any scheme or port parts can be passed here, and any
+// requests matching that hostname will be allowed to proceed as normal.
+func WithAllowedHosts(hosts ...string) func() {
+	return func() {
+		for _, host := range hosts {
+			allowedHosts = append(allowedHosts, host)
+		}
+	}
+}
+
+// Activate starts the mock environment.  This should be called before your
+// tests run.  Under the hood this replaces the Transport on the
+// http.DefaultClient with mockTransport.
 //
 // To enable mocks for a test, simply activate at the beginning of a test:
 // 		func TestFetchArticles(t *testing.T) {
@@ -141,32 +164,44 @@ var oldClient *http.Client
 // 			// all http requests will now be intercepted
 // 		}
 //
-// If you want all of your tests in a package to be mocked, just call Activate from init():
+// If you want all of your tests in a package to be mocked, just call Activate
+// from init():
 // 		func init() {
 // 			httpmock.Activate()
 // 		}
-func Activate() {
+//
+// Activate takes a variadic list of functions to configure the behaviour of
+// httpmock.
+func Activate(opts ...func()) {
 	if Disabled() {
 		return
 	}
 
-	// make sure that if Activate is called multiple times it doesn't overwrite the InitialTransport
-	// with a mock transport.
+	// make sure that if Activate is called multiple times it doesn't overwrite
+	// the InitialTransport with a mock transport.
 	if http.DefaultTransport != mockTransport {
 		initialTransport = http.DefaultTransport
 	}
 
 	http.DefaultTransport = mockTransport
+
+	// make sure to reset allowedHosts here
+	allowedHosts = []string{}
+
+	// invoke our configuration option functions
+	for _, opt := range opts {
+		opt()
+	}
 }
 
-// ActivateNonDefault starts the mock environment with a non-default http.Client.
-// This emulates the Activate function, but allows for custom clients that do not use
-// http.DefaultTransport
+// ActivateNonDefault starts the mock environment with a non-default
+// http.Client.  This emulates the Activate function, but allows for custom
+// clients that do not use http.DefaultTransport
 //
 // To enable mocks for a test using a custom client, activate at the beginning of a test:
 // 		client := &http.Client{Transport: &http.Transport{TLSHandshakeTimeout: 60 * time.Second}}
 // 		httpmock.ActivateNonDefault(client)
-func ActivateNonDefault(client *http.Client) {
+func ActivateNonDefault(client *http.Client, opts ...func()) {
 	if Disabled() {
 		return
 	}
@@ -175,6 +210,11 @@ func ActivateNonDefault(client *http.Client) {
 	oldTransport = client.Transport
 	oldClient = client
 	client.Transport = mockTransport
+
+	// invoke our configuration option functions
+	for _, opt := range opts {
+		opt()
+	}
 }
 
 // Deactivate shuts down the mock environment.  Any HTTP calls made after this
@@ -244,4 +284,15 @@ func RegisterNoResponder(responder Responder) {
 //
 func AllStubsCalled() error {
 	return mockTransport.AllStubsCalled()
+}
+
+// isAllowed checks a request against a list of allowed hosts. If the hostname
+// matches, then we permit the outgoing request.
+func isAllowed(req *http.Request) bool {
+	for _, host := range allowedHosts {
+		if req.URL.Hostname() == host {
+			return true
+		}
+	}
+	return false
 }
