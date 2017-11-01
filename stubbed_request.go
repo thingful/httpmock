@@ -28,15 +28,25 @@ var (
 	ErrIncorrectRequestBody = errors.New("Incorrect request body sent")
 )
 
+// Option is a functional configurator allowing non-standard configuration to be
+// added to the StubRequest without the previous chained function call approach.
+type Option func(*StubRequest)
+
 // NewStubRequest is a constructor function that returns a StubRequest for the
 // given method and url. We also supply a responder which actually generates
 // the response should the stubbed request match the request.
-func NewStubRequest(method, url string, responder Responder) *StubRequest {
-	return &StubRequest{
+func NewStubRequest(method, url string, responder Responder, options ...Option) *StubRequest {
+	r := &StubRequest{
 		Method:    method,
 		URL:       url,
 		Responder: responder,
 	}
+
+	for _, option := range options {
+		option(r)
+	}
+
+	return r
 }
 
 // StubRequest is used to capture data about a new stubbed request. It wraps up
@@ -53,15 +63,35 @@ type StubRequest struct {
 }
 
 // WithHeader is a function used to add http headers onto a stubbed request.
+//
+// Deprecated: use the functional WithHeader configuration function instead
 func (r *StubRequest) WithHeader(header *http.Header) *StubRequest {
 	r.Header = header
 	return r
 }
 
 // WithBody is a function used to add a body to a stubbed request
+//
+// Deprecated: use the functional WithBody configuration function instead
 func (r *StubRequest) WithBody(body io.Reader) *StubRequest {
 	r.Body = body
 	return r
+}
+
+// WithHeader is a functional configuration option used to add http headers onto
+// a stubbed request
+func WithHeader(header *http.Header) Option {
+	return func(r *StubRequest) {
+		r.Header = header
+	}
+}
+
+// WithBody is a functional configuration option used to add a body to a stubbed
+// request
+func WithBody(body io.Reader) Option {
+	return func(r *StubRequest) {
+		r.Body = body
+	}
 }
 
 // Matches is a test function that returns true if an incoming request is

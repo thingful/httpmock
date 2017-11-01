@@ -2,7 +2,7 @@ package httpmock
 
 import (
 	"bytes"
-	"io"
+	"fmt"
 	"net/http"
 	"testing"
 )
@@ -60,27 +60,29 @@ func TestMatches(t *testing.T) {
 	}
 
 	for _, testcase := range testcases {
-		stub := NewStubRequest(
-			testcase.method,
-			testcase.url,
-			NewStringResponder(200, "ok"),
-		)
+		t.Run(fmt.Sprintf("Testing %s %s", testcase.method, testcase.url), func(t *testing.T) {
+			stub := NewStubRequest(
+				testcase.method,
+				testcase.url,
+				NewStringResponder(200, "ok"),
+			)
 
-		req, err := http.NewRequest(testcase.requestMethod, testcase.requestURL, nil)
-		if err != nil {
-			t.Fatalf("Unexpected error, got %#v", err)
-		}
-
-		err = stub.Matches(req)
-		if testcase.expectedErr {
-			if err == nil {
-				t.Errorf("Didn't get error response when expected one: %s", testcase.url)
-			}
-		} else {
+			req, err := http.NewRequest(testcase.requestMethod, testcase.requestURL, nil)
 			if err != nil {
-				t.Errorf("Unexpected error, got %#v", err)
+				t.Fatalf("Unexpected error, got %#v", err)
 			}
-		}
+
+			err = stub.Matches(req)
+			if testcase.expectedErr {
+				if err == nil {
+					t.Errorf("Didn't get error response when expected one: %s", testcase.url)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Unexpected error, got %#v", err)
+				}
+			}
+		})
 	}
 }
 
@@ -133,26 +135,52 @@ func TestMatchesWithHeader(t *testing.T) {
 	}
 
 	for _, testcase := range testcases {
-		stub := NewStubRequest(
-			testcase.method,
-			testcase.stubURL,
-			NewStringResponder(200, "ok"),
-		).WithHeader(testcase.stubHeaders)
+		t.Run(fmt.Sprintf("Chained Header %s %s", testcase.method, testcase.stubURL), func(t *testing.T) {
+			stub := NewStubRequest(
+				testcase.method,
+				testcase.stubURL,
+				NewStringResponder(200, "ok"),
+			).WithHeader(testcase.stubHeaders)
 
-		req, err := http.NewRequest("GET", testcase.requestURL, nil)
-		if err != nil {
-			t.Fatalf("Unexpected error, got %#v", err)
-		}
+			req, err := http.NewRequest("GET", testcase.requestURL, nil)
+			if err != nil {
+				t.Fatalf("Unexpected error, got %#v", err)
+			}
 
-		req.Header = testcase.requestHeaders
+			req.Header = testcase.requestHeaders
 
-		err = stub.Matches(req)
+			err = stub.Matches(req)
 
-		if testcase.expectedErr && err == nil {
-			t.Errorf("Expected error, got none for %s", testcase.stubURL)
-		} else if !testcase.expectedErr && err != nil {
-			t.Errorf("Unexpected error, got '%#v' for %s", err, testcase.stubURL)
-		}
+			if testcase.expectedErr && err == nil {
+				t.Errorf("Expected error, got none for %s", testcase.stubURL)
+			} else if !testcase.expectedErr && err != nil {
+				t.Errorf("Unexpected error, got '%#v' for %s", err, testcase.stubURL)
+			}
+		})
+
+		t.Run(fmt.Sprintf("Functional Header %s %s", testcase.method, testcase.stubURL), func(t *testing.T) {
+			stub := NewStubRequest(
+				testcase.method,
+				testcase.stubURL,
+				NewStringResponder(200, "ok"),
+				WithHeader(testcase.stubHeaders),
+			)
+
+			req, err := http.NewRequest("GET", testcase.requestURL, nil)
+			if err != nil {
+				t.Fatalf("Unexpected error, got %#v", err)
+			}
+
+			req.Header = testcase.requestHeaders
+
+			err = stub.Matches(req)
+
+			if testcase.expectedErr && err == nil {
+				t.Errorf("Expected error, got none for %s", testcase.stubURL)
+			} else if !testcase.expectedErr && err != nil {
+				t.Errorf("Unexpected error, got '%#v' for %s", err, testcase.stubURL)
+			}
+		})
 	}
 }
 
@@ -160,9 +188,9 @@ func TestRequestWithBody(t *testing.T) {
 	testcases := []struct {
 		method      string
 		stubURL     string
-		body        io.Reader
+		body        *bytes.Buffer
 		requestURL  string
-		requestBody io.Reader
+		requestBody *bytes.Buffer
 		expectedErr bool
 	}{
 		{
@@ -184,24 +212,54 @@ func TestRequestWithBody(t *testing.T) {
 	}
 
 	for _, testcase := range testcases {
-		stub := NewStubRequest(
-			testcase.method,
-			testcase.stubURL,
-			NewStringResponder(200, "ok"),
-		).WithBody(testcase.body)
+		t.Run(fmt.Sprintf("Functional Body %s %s", testcase.method, testcase.stubURL), func(t *testing.T) {
+			stubBody := bytes.NewBuffer(testcase.body.Bytes())
+			requestBody := bytes.NewBuffer(testcase.requestBody.Bytes())
 
-		req, err := http.NewRequest(testcase.method, testcase.requestURL, testcase.requestBody)
-		if err != nil {
-			t.Fatalf("Unexpected error, got %#v", err)
-		}
+			stub := NewStubRequest(
+				testcase.method,
+				testcase.stubURL,
+				NewStringResponder(200, "ok"),
+				WithBody(stubBody),
+			)
 
-		err = stub.Matches(req)
+			req, err := http.NewRequest(testcase.method, testcase.requestURL, requestBody)
+			if err != nil {
+				t.Fatalf("Unexpected error, got %#v", err)
+			}
 
-		if testcase.expectedErr && err == nil {
-			t.Errorf("Expected error, got none for %s", testcase.stubURL)
-		} else if !testcase.expectedErr && err != nil {
-			t.Errorf("Unexpected error, got '%#v' for %s", err, testcase.stubURL)
-		}
+			err = stub.Matches(req)
+
+			if testcase.expectedErr && err == nil {
+				t.Errorf("Expected error, got none for %s", testcase.stubURL)
+			} else if !testcase.expectedErr && err != nil {
+				t.Errorf("Unexpected error, got '%#v' for %s", err, testcase.stubURL)
+			}
+		})
+		t.Run(fmt.Sprintf("Chained Body %s %s", testcase.method, testcase.stubURL), func(t *testing.T) {
+			stubBody := bytes.NewBuffer(testcase.body.Bytes())
+			requestBody := bytes.NewBuffer(testcase.requestBody.Bytes())
+
+			stub := NewStubRequest(
+				testcase.method,
+				testcase.stubURL,
+				NewStringResponder(200, "ok"),
+			).WithBody(stubBody)
+
+			req, err := http.NewRequest(testcase.method, testcase.requestURL, requestBody)
+			if err != nil {
+				t.Fatalf("Unexpected error, got %#v", err)
+			}
+
+			err = stub.Matches(req)
+
+			if testcase.expectedErr && err == nil {
+				t.Errorf("Expected error, got none for %s", testcase.stubURL)
+			} else if !testcase.expectedErr && err != nil {
+				t.Errorf("Unexpected error, got '%#v' for %s", err, testcase.stubURL)
+			}
+		})
+
 	}
 }
 
@@ -237,7 +295,8 @@ func TestStubbedRequestStringer(t *testing.T) {
 			testcase.method,
 			testcase.url,
 			NewStringResponder(200, "ok"),
-		).WithHeader(testcase.header)
+			WithHeader(testcase.header),
+		)
 
 		if stub.String() != testcase.expected {
 			t.Errorf("Unexpected response, expected '%s', got '%s'", testcase.expected, stub.String())
