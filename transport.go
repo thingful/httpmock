@@ -87,11 +87,23 @@ func (m *MockTransport) stubForRequest(req *http.Request) (*StubRequest, error) 
 // RegisterStubRequest adds a new responder, associated with a given stubbed
 // request. When a request comes in that matches, the responder will be called
 // and the response returned to the client.
+//
+// Deprecated: use the variadic RegisterStubRequests function instead
 func (m *MockTransport) RegisterStubRequest(stub *StubRequest) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	m.stubs = append(m.stubs, stub)
+}
+
+// RegisterStubRequests adds multiple stub requests with associated responders.
+// When a request comes in that matches, the appropriate responder will be
+// called and the response returned to the client.
+func (m *MockTransport) RegisterStubRequests(stubs ...*StubRequest) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.stubs = append(m.stubs, stubs...)
 }
 
 // RegisterNoResponder is used to register a responder that will be called if
@@ -256,8 +268,17 @@ func DeactivateAndReset() {
 // RegisterStubRequest adds a mock that will catch requests to the given HTTP
 // method and URL, then route them to the Responder which will generate a
 // response to be returned to the client.
+//
+// Deprecated: use the variadic RegisterStubRequests function instead
 func RegisterStubRequest(request *StubRequest) {
 	mockTransport.RegisterStubRequest(request)
+}
+
+// RegisterStubRequest adds multiple stubbed requests that will catch requests
+// to the given HTTP methods and URLs, then route them to the appropriate
+// Responder which will generate a response to be returned to the client.
+func RegisterStubRequests(requests ...*StubRequest) {
+	mockTransport.RegisterStubRequests(requests...)
 }
 
 // RegisterNoResponder adds a mock that will be called whenever a request for
