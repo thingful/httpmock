@@ -1,6 +1,8 @@
 package httpmock
 
 import (
+	"bytes"
+	"io/ioutil"
 	"net/http"
 	"strings"
 	"sync"
@@ -72,8 +74,20 @@ func (m *MockTransport) stubForRequest(req *http.Request) (*StubRequest, error) 
 	var err error
 	var errs = []error{}
 
+	haveBody := false
+	var body []byte
+	if req.Body != nil {
+		body, err = ioutil.ReadAll(req.Body)
+		if err != nil {
+			return nil, err
+		}
+		haveBody = true
+	}
 	// find the first stub that matches the request
 	for _, stub := range m.stubs {
+		if haveBody {
+			req.Body = ioutil.NopCloser(bytes.NewReader(body))
+		}
 		err = stub.Matches(req)
 		if err == nil {
 			return stub, nil

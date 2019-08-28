@@ -57,7 +57,7 @@ type StubRequest struct {
 	Method    string
 	URL       string
 	Header    *http.Header
-	Body      io.Reader
+	Body      []byte
 	Responder Responder
 	Called    bool
 }
@@ -74,7 +74,11 @@ func (r *StubRequest) WithHeader(header *http.Header) *StubRequest {
 //
 // Deprecated: use the functional WithBody configuration function instead
 func (r *StubRequest) WithBody(body io.Reader) *StubRequest {
-	r.Body = body
+	var err error
+	r.Body, err = ioutil.ReadAll(body)
+	if err != nil {
+		panic(err)
+	}
 	return r
 }
 
@@ -90,7 +94,11 @@ func WithHeader(header *http.Header) Option {
 // request
 func WithBody(body io.Reader) Option {
 	return func(r *StubRequest) {
-		r.Body = body
+		var err error
+		r.Body, err = ioutil.ReadAll(body)
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 
@@ -136,17 +144,12 @@ func (r *StubRequest) Matches(req *http.Request) error {
 	// if our stub includes a body, then it should equal the actual request body
 	// to match
 	if r.Body != nil {
-		stubBody, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			return err
-		}
-
 		requestBody, err := ioutil.ReadAll(req.Body)
 		if err != nil {
 			return err
 		}
 
-		if bytes.Compare(stubBody, requestBody) != 0 {
+		if bytes.Compare(r.Body, requestBody) != 0 {
 			return ErrIncorrectRequestBody
 		}
 	}

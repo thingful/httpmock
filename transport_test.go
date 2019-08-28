@@ -231,6 +231,186 @@ func TestAllStubsCalled(t *testing.T) {
 	}
 }
 
+func TestAllStubsCalledWithMultipleRequestsWithTheSameMethodAndUrl(t *testing.T) {
+	Activate()
+	defer DeactivateAndReset()
+
+	RegisterStubRequest(NewStubRequest("GET", "http://example.com", NewStringResponder(200, "ok")))
+
+	// make a single request
+	resp, err := http.Get("http://example.com")
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+
+	err = AllStubsCalled()
+	if err != nil {
+		t.Errorf("Expected no error when not all stubs called")
+	}
+
+	// make a second request
+	resp, err = http.Get("http://example.com")
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+
+	err = AllStubsCalled()
+	if err != nil {
+		t.Errorf("Expected no error when not all stubs called")
+	}
+
+}
+
+func TestAllStubsCalledWithTheSameMethodUrlHeaderAndBody(t *testing.T) {
+	Activate()
+	defer DeactivateAndReset()
+
+	body, err := json.Marshal(map[string]string{"foo": "bar"})
+	if err != nil {
+		panic(err)
+	}
+
+	// register a stub with body and header
+	RegisterStubRequest(
+		NewStubRequest(
+			"POST", "http://example.com", NewStringResponder(200, "ok"),
+		).WithHeader(
+			&http.Header{"X-Foo-Bar": []string{"Foo Bar Baz"}},
+		).WithBody(bytes.NewBuffer(body)),
+	)
+
+	// make a single request
+	req, err := http.NewRequest("POST", "http://example.com", bytes.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Add("X-Foo-Bar", "Foo Bar Baz")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+
+	err = AllStubsCalled()
+	if err != nil {
+		t.Errorf("Expected no error when not all stubs called")
+	}
+
+	// make a second identical request
+	req, err = http.NewRequest("POST", "http://example.com", bytes.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Add("X-Foo-Bar", "Foo Bar Baz")
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+
+	err = AllStubsCalled()
+	if err != nil {
+		t.Errorf("Expected no error when all stubs called")
+	}
+
+}
+
+func TestAllStubsCalledWithDifferentMethodUrlHeaderAndBody(t *testing.T) {
+	Activate()
+	defer DeactivateAndReset()
+
+	body, err := json.Marshal(map[string]string{"foo": "bar"})
+	if err != nil {
+		panic(err)
+	}
+
+	body2, err := json.Marshal(map[string]string{"foo": "baz"})
+	if err != nil {
+		panic(err)
+	}
+
+	// register two stubs
+	RegisterStubRequest(
+		NewStubRequest(
+			"POST", "http://example.com", NewStringResponder(200, "ok"),
+		).WithHeader(
+			&http.Header{"X-Foo-Bar": []string{"Foo Bar Baz"}},
+		).WithBody(
+			bytes.NewBuffer(body2),
+		),
+	)
+
+	RegisterStubRequest(
+		NewStubRequest(
+			"POST", "http://example.com", NewStringResponder(200, "ok"),
+		).WithHeader(
+			&http.Header{"X-Foo-Bar": []string{"Foo Bar Baz"}},
+		).WithBody(bytes.NewBuffer(body)),
+	)
+
+	// make a single request
+	req, err := http.NewRequest("POST", "http://example.com", bytes.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Add("X-Foo-Bar", "Foo Bar Baz")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+
+	err = AllStubsCalled()
+	if err == nil {
+		t.Errorf("Expected error when not all stubs called")
+	}
+
+	if !strings.Contains(err.Error(), "http://example.com") {
+		t.Errorf("Expected error message to contain uncalled stub, got: '%s'", err.Error())
+	}
+
+	// make a single request
+	req, err = http.NewRequest("POST", "http://example.com", bytes.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Add("X-Foo-Bar", "Foo Bar Baz")
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+
+	err = AllStubsCalled()
+	if err == nil {
+		t.Errorf("Expected error when not all stubs called")
+	}
+
+	if !strings.Contains(err.Error(), "http://example.com") {
+		t.Errorf("Expected error message to contain uncalled stub, got: '%s'", err.Error())
+	}
+
+	// make a single request
+	req, err = http.NewRequest("POST", "http://example.com", bytes.NewReader(body2))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Add("X-Foo-Bar", "Foo Bar Baz")
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+
+	err = AllStubsCalled()
+	if err != nil {
+		t.Errorf("Expected no error when all stubs called")
+	}
+
+}
+
 func TestMockTransportReset(t *testing.T) {
 	DeactivateAndReset()
 
@@ -451,3 +631,5 @@ func TestMockTransportNonDefaultAllowedHosts(t *testing.T) {
 	// restore our original
 	initialTransport = cachedTransport
 }
+
+// func

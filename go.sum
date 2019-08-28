@@ -1,0 +1,10 @@
+github.com/PuerkitoBio/purell v1.0.0 h1:0GoNN3taZV6QI81IXgCbxMyEaJDXMSIjArYBCYzVVvs=
+github.com/PuerkitoBio/purell v1.0.0/go.mod h1:c11w/QuzBsJSee3cPx9rAFu61PvFxuPbtSwDGJws/X0=
+github.com/PuerkitoBio/urlesc v0.0.0-20160726150825-5bd2802263f2 h1:JCHLVE3B+kJde7bIEo5N4J+ZbLhp0J1Fs+ulyRws4gE=
+github.com/PuerkitoBio/urlesc v0.0.0-20160726150825-5bd2802263f2/go.mod h1:uGdkoq3SwY9Y+13GIhn11/XLaGBb4BfwItxLd5jeuXE=
+github.com/goware/urlx v0.0.0-20160113170155-86bdc2456038 h1:Gc3BCC674dsGqSp0cu9UAPydZRC7gxEOuUNKgXQPAx8=
+github.com/goware/urlx v0.0.0-20160113170155-86bdc2456038/go.mod h1:Zn362WbIrTvMfW1tj4MxrEct8vJtNlnljZPnRssPfDU=
+golang.org/x/net v0.0.0-20161101191631-4bb47a1098b3 h1:9FrZULpPblLeSMxFmRapLbJGYHjcvaCZYD+5rwKQqZA=
+golang.org/x/net v0.0.0-20161101191631-4bb47a1098b3/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
+golang.org/x/text v0.0.0-20161027091323-a8b38433e35b h1:bQeEFHDAz2T0N9zVAr0qdH8BRhoZocCxLudf/77OxGY=
+golang.org/x/text v0.0.0-20161027091323-a8b38433e35b/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
